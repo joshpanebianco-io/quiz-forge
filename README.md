@@ -33,7 +33,7 @@
 
 LLM prompt included in misc folder.
 
-Example json output:
+Example json output from LLM:
 
 ```json
 {
