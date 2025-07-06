@@ -31,7 +31,7 @@
 
 ---
 
-_**(LLM prompt included in misc folder.)**_
+_**(LLM prompt to generate json quizzes included in misc folder.)**_
 
 **Example json output from LLM:**
 
