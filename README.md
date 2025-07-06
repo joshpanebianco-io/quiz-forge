@@ -31,9 +31,9 @@
 
 ---
 
-LLM prompt included in misc folder.
+**LLM prompt included in misc folder.**
 
-Example json output from LLM:
+**Example json output from LLM:**
 
 ```json
 {
