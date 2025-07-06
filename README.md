@@ -2,7 +2,7 @@
 
 **QuizForge** is a very simple lightweight web-based application that allows users to upload, take, and manage multiple-choice quizzes. It supports JSON-based quiz uploads, automatic scoring, and question-by-question navigation with immediate results.
 
-> ⚠️ **Note**: Not production/hosted. Simple tool I made to help me study for certification exams.
+> ⚠️ **Note**: Not production/hosted. Simple tool I made to help myself study for certification exams.
 
 ---
 
