@@ -29,6 +29,7 @@
 - **Tailwind CSS** — utility-first styling
 - **Axios** - promise-based HTTP client
 
+---
 
 LLM prompt included in misc folder.
 
