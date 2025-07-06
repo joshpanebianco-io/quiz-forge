@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Features
+## ✨ Features
 
 - 📤 Upload custom quizzes in JSON format.
 - 📚 View a list of all uploaded quizzes.
@@ -36,16 +36,16 @@ Example json output:
 
 ```json
 {
-"name": "Sample Quiz",
-"description": "A simple quiz example.",
-"questions": [
-{
-"type": "MultipleChoice",
-"question": "What is 2 + 2?",
-"correctAnswer": "4",
-"multiChoiceOptions": ["3", "4", "5", "6"]
-}
-]
+  "name": "Sample Quiz",
+  "description": "A simple quiz example.",
+  "questions": [
+    {
+    "type": "MultipleChoice",
+    "question": "What is 2 + 2?",
+    "correctAnswer": "4",
+    "multiChoiceOptions": ["3", "4", "5", "6"]
+    }
+  ]
 }
 ```
 
