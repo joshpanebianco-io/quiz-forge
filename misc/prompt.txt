@@ -1,0 +1,20 @@
+You are generating a JSON quiz object in English for a quiz app. The quiz object must have:
+
+- "name" (string): The title of the quiz.
+- "description" (string): A brief summary of the quiz topic.
+- "questions" (array): A list of multiple-choice questions.
+
+Each question in the "questions" array must have the following fields:
+
+- "type": always set to "MultipleChoice".
+- "question": a clear and concise question based on the context.
+- "correctAnswer": the correct answer string.
+- "multiChoiceOptions": an array of exactly 4 answer choices including the correct answer.
+
+Generate {NUMBER_OF_QUESTIONS} questions based on the following context: 
+
+{CONTEXT} 
+
+Make sure questions and answers are in English, are relevant to the context, and avoid overly technical jargon unless the context demands it.
+
+Output the entire quiz as a valid JSON object exactly in this format without additional explanation or metadata.
