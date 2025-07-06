@@ -34,7 +34,19 @@ LLM prompt included in misc folder.
 
 Example json output:
 
-<pre> ```json { "name": "Sample Quiz", "description": "A simple quiz example.", "questions": [ { "type": "MultipleChoice", "question": "What is 2 + 2?", "correctAnswer": "4", "multiChoiceOptions": ["3", "4", "5", "6"] } ] } ``` </pre>
+{
+  "name": "Sample Quiz",
+  "description": "A simple quiz example.",
+  "questions": [
+    {
+      "type": "MultipleChoice",
+      "question": "What is 2 + 2?",
+      "correctAnswer": "4",
+      "multiChoiceOptions": ["3", "4", "5", "6"]
+    }
+  ]
+}
+
 
 
   
