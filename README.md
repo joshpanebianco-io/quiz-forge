@@ -50,6 +50,16 @@ Example json output:
 }
 ```
 
+---
+
+## 📸 Screenshots
+
+A preview of the app in action:
+
+<img src="screenshots/quiz-forge-quizzes.png" width="600"/>
+<img src="screenshots/quiz-forge-quiz.png" width="600"/>
+<img src="screenshots/quiz-forge-results.png" width="600"/>
+
 
 
   
