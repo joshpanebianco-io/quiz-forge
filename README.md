@@ -56,6 +56,7 @@ Example json output:
 
 A preview of the app in action:
 
+
 <img src="misc/screenshots/quiz-forge-quizzes.png" width="500"/>
 
 ---
