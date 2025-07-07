@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const API_BASE = "http://localhost:8000";
-const PAGE_SIZE = 8; // Number of quizzes per page
+const PAGE_SIZE = 6; // Number of quizzes per page
 
 // Fisher-Yates shuffle algorithm to randomize answer options
 function shuffleArray(array) {
@@ -20,6 +20,8 @@ function App() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
+  const [attempts, setAttempts] = useState({});
+
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,6 +39,33 @@ function App() {
       alert("Failed to fetch quizzes");
     }
   };
+
+  const fetchAttempts = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/attempts`);
+      setAttempts(res.data);
+    } catch {
+      console.error("Failed to fetch attempts");
+    }
+  };
+
+  useEffect(() => {
+    fetchQuizzes();
+    fetchAttempts();
+  }, []);
+
+  useEffect(() => {
+    if (showResults && selectedQuiz) {
+      axios.post(`${API_BASE}/quiz/${selectedQuiz.id}/attempt`, {
+        score,
+        total: selectedQuiz.questions.length
+      }).then(fetchAttempts).catch(() => {
+        console.error("Failed to record attempt");
+      });
+    }
+  }, [showResults]);
+
+
 
   const handleFileUpload = async (e) => {
     if (!e.target.files.length) return;
@@ -145,7 +174,15 @@ function App() {
                 onClick={() => loadQuiz(q.id)}
                 className="flex-grow text-left px-4 py-3 bg-indigo-100 rounded-md hover:bg-indigo-200 transition"
               >
-                {q.name}
+                <div>
+                  <div>{q.name}</div>
+                  <div className="text-sm text-gray-600">
+                    {attempts[q.id]
+                      ? `Last score: ${attempts[q.id].score}/${attempts[q.id].total}`
+                      : "No attempts yet"}
+                  </div>
+              </div>
+
               </button>
               <button
                 onClick={() => deleteQuiz(q.id)}

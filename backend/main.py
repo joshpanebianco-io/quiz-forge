@@ -1,8 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 import json
-from models import init_db, save_quiz, get_all_quizzes, get_quiz_by_id, get_db
-from fastapi import status
+from models import (
+    init_db, save_quiz, get_all_quizzes, get_quiz_by_id,
+    save_quiz_attempt, get_latest_attempts, get_db
+)
 
 app = FastAPI()
 
@@ -40,13 +42,24 @@ def get_quiz(quiz_id: int):
         raise HTTPException(status_code=404, detail="Quiz not found")
     return quiz
 
+@app.post("/quiz/{quiz_id}/attempt")
+def record_attempt(quiz_id: int, data: dict):
+    score = data.get("score")
+    total = data.get("total")
+    if score is None or total is None:
+        raise HTTPException(status_code=400, detail="Missing score or total.")
+    save_quiz_attempt(quiz_id, score, total)
+    return {"message": "Attempt recorded"}
+
+@app.get("/attempts")
+def fetch_attempts():
+    return get_latest_attempts()
+
 @app.delete("/quiz/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_quiz(quiz_id: int):
     conn = get_db()
     c = conn.cursor()
-    # Delete related questions first (due to foreign key)
     c.execute("DELETE FROM questions WHERE quiz_id = ?", (quiz_id,))
-    # Delete the quiz itself
     c.execute("DELETE FROM quizzes WHERE id = ?", (quiz_id,))
     conn.commit()
     conn.close()

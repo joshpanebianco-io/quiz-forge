@@ -27,13 +27,22 @@ def init_db():
             FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
         )
     """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            quiz_id INTEGER,
+            score INTEGER,
+            total_questions INTEGER,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+        )
+    """)
     conn.commit()
     conn.close()
 
 def save_quiz(quiz: Dict[str, Any]):
     conn = get_db()
     c = conn.cursor()
-
     c.execute("INSERT INTO quizzes (name, description) VALUES (?, ?)", (
         quiz["name"],
         quiz.get("description", "")
@@ -74,6 +83,7 @@ def get_quiz_by_id(quiz_id: int):
         return None
 
     quiz = {
+        "id": quiz_id,
         "name": row[0],
         "description": row[1],
         "questions": []
@@ -90,3 +100,29 @@ def get_quiz_by_id(quiz_id: int):
 
     conn.close()
     return quiz
+
+def save_quiz_attempt(quiz_id: int, score: int, total_questions: int):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO attempts (quiz_id, score, total_questions)
+        VALUES (?, ?, ?)
+    """, (quiz_id, score, total_questions))
+    conn.commit()
+    conn.close()
+
+def get_latest_attempts():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT quiz_id, score, total_questions
+        FROM attempts
+        WHERE id IN (
+            SELECT MAX(id)
+            FROM attempts
+            GROUP BY quiz_id
+        )
+    """)
+    result = {row[0]: {"score": row[1], "total": row[2]} for row in c.fetchall()}
+    conn.close()
+    return result
