@@ -3,7 +3,7 @@ import axios from "axios";
 
 
 const API_BASE = "http://localhost:8000";
-const PAGE_SIZE = 6; // Number of quizzes per page
+const PAGE_SIZE = 5; // Number of quizzes per page
 
 // Fisher-Yates shuffle algorithm to randomize answer options
 function shuffleArray(array) {
@@ -57,7 +57,7 @@ Output the entire quiz as a valid JSON object exactly in this format without add
       const res = await axios.post(
         "https://openrouter.ai/api/v1/chat/completions",
         {
-          model: "deepseek/deepseek-chat-v3-0324:free",
+          model: "deepseek/deepseek-r1:free",
           messages: [
             { role: "system", content: systemPrompt },
           ],
@@ -259,7 +259,7 @@ Output the entire quiz as a valid JSON object exactly in this format without add
           />
         </label>
         <div className="mb-6">
-          <label className="block text-lg font-medium mb-2">Generate Quiz from Context</label>
+          <label className="block text-lg font-medium mb-2">Generate Quiz from AI</label>
           <textarea
             rows={2}
             value={context}
