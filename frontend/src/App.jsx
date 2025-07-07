@@ -3,7 +3,7 @@ import axios from "axios";
 
 
 const API_BASE = "http://localhost:8000";
-const PAGE_SIZE = 5; // Number of quizzes per page
+const PAGE_SIZE = 4; // Number of quizzes per page
 
 // Fisher-Yates shuffle algorithm to randomize answer options
 function shuffleArray(array) {
