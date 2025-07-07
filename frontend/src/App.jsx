@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const API_BASE = "http://localhost:8000";
+const PAGE_SIZE = 8; // Number of quizzes per page
 
 // Fisher-Yates shuffle algorithm to randomize answer options
 function shuffleArray(array) {
@@ -20,6 +21,9 @@ function App() {
   const [answers, setAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
   useEffect(() => {
     fetchQuizzes();
   }, []);
@@ -28,6 +32,7 @@ function App() {
     try {
       const res = await axios.get(`${API_BASE}/quizzes`);
       setQuizzes(res.data);
+      setCurrentPage(1); // Reset to first page on fetch
     } catch {
       alert("Failed to fetch quizzes");
     }
@@ -75,7 +80,6 @@ function App() {
     }
   };
 
-
   const deleteQuiz = async (quizId) => {
     if (!window.confirm("Are you sure you want to delete this quiz?")) return;
     try {
@@ -85,15 +89,22 @@ function App() {
         setSelectedQuiz(null);
         setShowResults(false);
       }
+      // Adjust currentPage if necessary (optional)
+      const newTotalPages = Math.ceil((quizzes.length - 1) / PAGE_SIZE);
+      if (currentPage > newTotalPages) setCurrentPage(newTotalPages);
     } catch {
       alert("Failed to delete quiz");
     }
   };
 
-  // Just store the answer, don't auto-advance
   const answerQuestion = (choice) => {
     setAnswers({ ...answers, [currentQuestionIndex]: choice });
   };
+
+  // Pagination logic
+  const totalPages = Math.ceil(quizzes.length / PAGE_SIZE);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const currentQuizzes = quizzes.slice(startIndex, startIndex + PAGE_SIZE);
 
   const score = selectedQuiz
     ? selectedQuiz.questions.reduce(
@@ -128,7 +139,7 @@ function App() {
           <p className="text-gray-500">No quizzes uploaded yet.</p>
         )}
         <ul className="space-y-3">
-          {quizzes.map((q) => (
+          {currentQuizzes.map((q) => (
             <li key={q.id} className="flex justify-between items-center">
               <button
                 onClick={() => loadQuiz(q.id)}
@@ -146,6 +157,41 @@ function App() {
             </li>
           ))}
         </ul>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-6 space-x-3">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 rounded-md text-white ${
+                currentPage === 1 ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              }`}
+            >
+              Prev
+            </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-4 py-2 rounded-md text-white ${
+                  currentPage === i + 1 ? "bg-indigo-800" : "bg-indigo-600 hover:bg-indigo-700"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`px-4 py-2 rounded-md text-white ${
+                currentPage === totalPages ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -153,7 +199,9 @@ function App() {
   if (showResults) {
     return (
       <div className="max-w-xl mx-auto p-6">
-        <h2 className="text-3xl font-bold mb-6 text-center">Results for: {selectedQuiz.name}</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center">
+          Results for: {selectedQuiz.name}
+        </h2>
         <p className="text-lg mb-6 text-center">
           You scored{" "}
           <span className="font-semibold text-indigo-600">{score}</span> out of{" "}
@@ -167,7 +215,9 @@ function App() {
               <div
                 key={i}
                 className={`p-4 rounded border ${
-                  isCorrect ? "border-green-400 bg-green-50" : "border-red-400 bg-red-50"
+                  isCorrect
+                    ? "border-green-400 bg-green-50"
+                    : "border-red-400 bg-red-50"
                 }`}
               >
                 <p className="font-semibold mb-1">
@@ -175,7 +225,9 @@ function App() {
                 </p>
                 <p>
                   Your answer:{" "}
-                  <span className={isCorrect ? "text-green-700" : "text-red-700 font-bold"}>
+                  <span
+                    className={isCorrect ? "text-green-700" : "text-red-700 font-bold"}
+                  >
                     {userAnswer || <em>No answer</em>}
                   </span>
                 </p>
