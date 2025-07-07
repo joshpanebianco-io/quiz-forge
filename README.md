@@ -2,7 +2,7 @@
 
 **QuizForge** is a very simple lightweight web-based application that allows users to upload, take, and manage multiple-choice quizzes. It supports JSON-based quiz uploads, automatic scoring, and question-by-question navigation with immediate results.
 
-> ⚠️ **Note**: Not production/hosted. Simple tool I made to help me study for certification exams.
+> ⚠️ **Note**: Not production/hosted. Simple tool I made to help myself study for certification exams.
 
 ---
 
@@ -31,9 +31,9 @@
 
 ---
 
-LLM prompt included in misc folder.
+_**(LLM prompt to generate json quizzes included in misc folder.)**_
 
-Example json output:
+**Example json output from LLM:**
 
 ```json
 {
@@ -41,14 +41,31 @@ Example json output:
   "description": "A simple quiz example.",
   "questions": [
     {
-    "type": "MultipleChoice",
-    "question": "What is 2 + 2?",
-    "correctAnswer": "4",
-    "multiChoiceOptions": ["3", "4", "5", "6"]
+      "type": "MultipleChoice",
+      "question": "What is 2 + 2?",
+      "correctAnswer": "4",
+      "multiChoiceOptions": ["3", "4", "5", "6"]
     }
   ]
 }
 ```
+
+---
+
+## 📸 Screenshots
+
+A preview of the app in action:
+
+
+<img src="misc/screenshots/quiz-forge-quizzes.png" width="500"/>
+
+---
+
+<img src="misc/screenshots/quiz-forge-quiz.png" width="500"/>
+
+---
+
+<img src="misc/screenshots/quiz-forge-results.png" width="500"/>
 
 
 
