@@ -55,13 +55,15 @@ function App() {
     try {
       const res = await axios.get(`${API_BASE}/quiz/${quizId}`);
 
-      // Shuffle answer options for each question here
+      // Shuffle both the questions and their options
       const shuffledQuiz = {
         ...res.data,
-        questions: res.data.questions.map((q) => ({
-          ...q,
-          multiChoiceOptions: shuffleArray(q.multiChoiceOptions),
-        })),
+        questions: shuffleArray(
+          res.data.questions.map((q) => ({
+            ...q,
+            multiChoiceOptions: shuffleArray(q.multiChoiceOptions),
+          }))
+        ),
       };
 
       setSelectedQuiz(shuffledQuiz);
@@ -72,6 +74,7 @@ function App() {
       alert("Failed to load quiz");
     }
   };
+
 
   const deleteQuiz = async (quizId) => {
     if (!window.confirm("Are you sure you want to delete this quiz?")) return;

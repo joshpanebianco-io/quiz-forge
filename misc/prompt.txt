@@ -1,6 +1,6 @@
 You are generating a JSON quiz object in English for a quiz app. The quiz object must have:
 
-- "name" (string): The title of the quiz.
+- "name" (string): The title of the quiz. If a youtube video is given as part of the context, then it's title should be the title here.
 - "description" (string): A brief summary of the quiz topic.
 - "questions" (array): A list of multiple-choice questions.
 
