@@ -22,7 +22,7 @@ init_db()
 
 load_dotenv()
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")  # Set this in your .env file or environment
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 @app.post("/generate")
 async def generate_quiz(data: dict):
