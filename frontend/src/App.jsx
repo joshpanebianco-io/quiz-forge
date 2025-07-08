@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://quiz-forge.onrender.com";
 const PAGE_SIZE = 4; // Number of quizzes per page
 
 // Fisher-Yates shuffle algorithm to randomize answer options
@@ -67,7 +67,7 @@ Output the entire quiz as a valid JSON object exactly in this format without add
           headers: {
             Authorization: `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
             "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:5173", // Change for prod
+            "HTTP-Referer": "https://joshpanebianco-io.github.io/quiz-forge", // Change for prod
             "X-Title": "QuizForge",
           },
         }
