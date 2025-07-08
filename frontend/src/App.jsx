@@ -33,56 +33,16 @@ function App() {
     setLoadingAI(true);
 
     try {
-      const systemPrompt = `
-You are generating a JSON quiz object in English for a quiz app. The quiz object must have:
+      const res = await axios.post(`${API_BASE}/generate`, {
+        context,
+        numQuestions,
+      });
 
-- "name" (string): The title of the quiz. (use an appropriate title based on the context)
-- "description" (string): A brief summary of the quiz topic.
-- "questions" (array): A list of multiple-choice questions.
+      const quizJSON = res.data;
 
-Each question in the "questions" array must have the following fields:
-
-- "type": always set to "MultipleChoice".
-- "question": a clear and concise question based on the context.
-- "correctAnswer": the correct answer string.
-- "multiChoiceOptions": an array of exactly 4 answer choices including the correct answer. 
-
-${context}
-
-Make sure questions and answers are in English, are relevant to the context, and avoid overly technical jargon unless the context demands it.
-
-Output the entire quiz as a valid JSON object exactly in this format without additional explanation or metadata.
-    `;
-
-      const res = await axios.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          model: "deepseek/deepseek-r1:free",
-          messages: [
-            { role: "system", content: systemPrompt },
-          ],
-          temperature: 0.7,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://joshpanebianco-io.github.io/quiz-forge", // Change for prod
-            "X-Title": "QuizForge",
-          },
-        }
-      );
-
-      let raw = res.data.choices[0].message.content.trim();
-
-      // Strip code fencing like ```json ... ```
-      if (raw.startsWith("```")) {
-        raw = raw.replace(/^```(?:json)?/, "").replace(/```$/, "").trim();
-      }
-
-      const quizJSON = JSON.parse(raw);
-
-      const blob = new Blob([JSON.stringify(quizJSON, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(quizJSON, null, 2)], {
+        type: "application/json",
+      });
       const formData = new FormData();
       formData.append("file", blob, "quiz.json");
 
@@ -99,21 +59,17 @@ Output the entire quiz as a valid JSON object exactly in this format without add
 
       let message = "Failed to generate quiz.";
       if (err.response?.data?.detail) {
-        if (typeof err.response.data.detail === "string") {
-          message += " " + err.response.data.detail;
-        } else {
-          message += " " + JSON.stringify(err.response.data.detail);
-        }
+        message += " " + err.response.data.detail;
       } else if (err.message) {
         message += " " + err.message;
       }
 
       alert(message);
-    }
-    finally {
+    } finally {
       setLoadingAI(false);
     }
   };
+
 
 
 
@@ -373,8 +329,8 @@ Output the entire quiz as a valid JSON object exactly in this format without add
               <div
                 key={i}
                 className={`p-4 rounded border ${isCorrect
-                    ? "border-green-400 bg-green-50"
-                    : "border-red-400 bg-red-50"
+                  ? "border-green-400 bg-green-50"
+                  : "border-red-400 bg-red-50"
                   }`}
               >
                 <p className="font-semibold mb-1">
@@ -433,8 +389,8 @@ Output the entire quiz as a valid JSON object exactly in this format without add
             <button
               onClick={() => answerQuestion(opt)}
               className={`w-full text-left px-5 py-3 border rounded-md transition ${answers[currentQuestionIndex] === opt
-                  ? "border-indigo-600 bg-indigo-100"
-                  : "border-indigo-400 hover:bg-indigo-100"
+                ? "border-indigo-600 bg-indigo-100"
+                : "border-indigo-400 hover:bg-indigo-100"
                 }`}
             >
               {opt}
@@ -460,8 +416,8 @@ Output the entire quiz as a valid JSON object exactly in this format without add
             onClick={() => setShowResults(true)}
             disabled={answers[currentQuestionIndex] == null}
             className={`px-6 py-3 rounded-md text-white ${answers[currentQuestionIndex] == null
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
               }`}
           >
             Submit
@@ -474,8 +430,8 @@ Output the entire quiz as a valid JSON object exactly in this format without add
             }}
             disabled={answers[currentQuestionIndex] == null}
             className={`px-6 py-3 rounded-md text-white ${answers[currentQuestionIndex] == null
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
               }`}
           >
             Next

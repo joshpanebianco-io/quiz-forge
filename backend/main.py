@@ -1,6 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 import json
+import httpx
+import os
 from models import (
     init_db, save_quiz, get_all_quizzes, get_quiz_by_id,
     save_quiz_attempt, get_latest_attempts, get_db
@@ -16,6 +19,69 @@ app.add_middleware(
 )
 
 init_db()
+
+load_dotenv()
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")  # Set this in your .env file or environment
+
+@app.post("/generate")
+async def generate_quiz(data: dict):
+    context = data.get("context", "").strip()
+    num_questions = data.get("numQuestions", 5)
+
+    if not context:
+        raise HTTPException(status_code=400, detail="Context is required")
+
+    prompt = f"""
+You are generating a JSON quiz object in English for a quiz app. The quiz object must have:
+
+- "name" (string): The title of the quiz. (use an appropriate title based on the context)
+- "description" (string): A brief summary of the quiz topic.
+- "questions" (array): A list of multiple-choice questions.
+
+Each question in the "questions" array must have the following fields:
+
+- "type": always set to "MultipleChoice".
+- "question": a clear and concise question based on the context.
+- "correctAnswer": the correct answer string.
+- "multiChoiceOptions": an array of exactly 4 answer choices including the correct answer. 
+
+${context}
+
+Make sure questions and answers are in English, are relevant to the context, and avoid overly technical jargon unless the context demands it.
+
+Output the entire quiz as a valid JSON object exactly in this format without additional explanation or metadata.
+"""
+
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://joshpanebianco-io.github.io/quiz-forge",  # change if needed
+                    "X-Title": "QuizForge",
+                },
+                json={
+                    "model": "deepseek/deepseek-r1:free",
+                    "messages": [{"role": "system", "content": prompt}],
+                    "temperature": 0.7,
+                },
+                timeout=60.0,
+            )
+
+        raw = res.json()["choices"][0]["message"]["content"].strip()
+
+        # Strip triple backticks if present
+        if raw.startswith("```"):
+            raw = raw.replace("```json", "").replace("```", "").strip()
+
+        quiz = json.loads(raw)
+        return quiz
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate quiz: {e}")
 
 @app.get("/")
 def read_root():
