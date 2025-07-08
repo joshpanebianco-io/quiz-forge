@@ -1,14 +1,15 @@
 # 🧠 QuizForge
 
-**QuizForge** is a very simple lightweight web-based application that allows users to upload, take, and manage multiple-choice quizzes. It supports JSON-based quiz uploads, automatic scoring, and question-by-question navigation with immediate results.
+**QuizForge** is a very simple lightweight web-based application that allows users to upload, take, and manage multiple-choice quizzes. It supports JSON file uploads and AI model prompts to generate quizzes, automatic scoring, and question-by-question navigation with immediate results.
 
-> ⚠️ **Note**: Not production/hosted. Simple tool I made to help myself study for certification exams.
+> ⚠️ **Note**: Not production/hosted and does not follow good react componentisation practices. Simple tool I made to help myself study for certification exams.
 
 ---
 
 ## ✨ Features
 
-- 📤 Upload custom quizzes in JSON format.
+- 📤 Upload JSON files to generate quizzes.
+- 🤖 Enter prompt to generate quizzes with AI
 - 📚 View a list of all uploaded quizzes.
 - 📝 Take quizzes with a multiple-choice interface.
 - ✅ Get immediate scoring feedback upon completion.
@@ -21,7 +22,8 @@
 ### 🧠 Backend
 
 - **FastAPI** — modern and high-performance Python web framework  
-- **Sqlite** - lightweight file based database 
+- **Sqlite** - lightweight file based database
+- **OpenRouter** - API platform for AI models
 
 ### 💻 Frontend
 
@@ -30,8 +32,6 @@
 - **Axios** - promise-based HTTP client
 
 ---
-
-_**(LLM prompt to generate json quizzes included in misc folder.)**_
 
 **Example json output from LLM:**
 
@@ -66,6 +66,10 @@ A preview of the app in action:
 ---
 
 <img src="misc/screenshots/quiz-forge-results.png" width="500"/>
+
+---
+
+<img src="misc/screenshots/quiz-forge-results2.png" width="500"/>
 
 
 
