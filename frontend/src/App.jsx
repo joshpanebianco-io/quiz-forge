@@ -28,6 +28,8 @@ function App() {
   const [numQuestions, setNumQuestions] = useState(10);
   const [loadingAI, setLoadingAI] = useState(false);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [loadingMock, setLoadingMock] = useState(false);
+
 
 
   const generateQuizFromPrompt = async () => {
@@ -71,6 +73,23 @@ function App() {
       setLoadingAI(false);
     }
   };
+
+  const generateMockExam = async () => {
+    try {
+      setLoadingMock(true);
+      const res = await axios.post(`${API_BASE}/mock-exam`);
+      alert("Mock exam created!");
+      fetchQuizzes(); // Refresh list
+    } catch (err) {
+      alert("Failed to create mock exam");
+      console.error(err);
+    } finally {
+      setLoadingMock(false);
+    }
+  };
+
+
+
 
 
 
@@ -228,7 +247,7 @@ function App() {
             placeholder="Enter context for the quiz..."
             className="w-full p-3 border rounded-md mb-3"
           />
-          <div className="flex items-center mb-3 space-x-3">
+          <div className="flex justify-between items-center mb-3 space-x-3">
             {/* <input
               type="number"
               min={1}
@@ -266,6 +285,38 @@ function App() {
               )}
               <span>{loadingAI ? "Generating..." : "Generate Quiz"}</span>
             </button>
+
+            <button
+              onClick={generateMockExam}
+              disabled={loadingMock}
+              className={`px-5 py-2 rounded-md flex items-center justify-center space-x-2 text-white ${loadingMock ? "bg-gray-400" : "bg-gray-800 hover:bg-gray-900"
+                }`}
+            >
+              {loadingMock && (
+                <svg
+                  className="w-5 h-5 animate-spin text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+              )}
+              <span>{loadingMock ? "Generating..." : "Create Mock Exam"}</span>
+            </button>
+
 
           </div>
         </div>

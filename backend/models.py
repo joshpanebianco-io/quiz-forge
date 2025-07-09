@@ -2,6 +2,8 @@ import os
 import json
 from typing import Dict, Any
 from supabase import create_client, Client
+from dotenv import load_dotenv
+load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -22,14 +24,20 @@ def save_quiz(quiz: Dict[str, Any]):
     for q in quiz["questions"]:
         if q["type"] != "MultipleChoice":
             continue
-        supabase.table("questions").insert({
-            "quiz_id": quiz_id,
+        q_res = supabase.table("questions").insert({
             "question": q["question"],
             "correct_answer": q["correctAnswer"],
             "options": json.dumps(q["multiChoiceOptions"])
         }).execute()
+        question_id = q_res.data[0]["id"]
+
+        supabase.table("quiz_questions").insert({
+            "quiz_id": quiz_id,
+            "question_id": question_id
+        }).execute()
 
     return quiz_id
+
 
 def get_all_quizzes():
     res = supabase.table("quizzes").select("id, name, description").execute()
@@ -40,8 +48,22 @@ def get_quiz_by_id(quiz_id: int):
     if not quiz_res.data:
         return None
 
-    questions_res = supabase.table("questions").select("question, correct_answer, options").eq("quiz_id", quiz_id).execute()
-    
+    # Get question IDs from quiz_questions
+    mapping_res = supabase.table("quiz_questions").select("question_id").eq("quiz_id", quiz_id).execute()
+    question_ids = [row["question_id"] for row in mapping_res.data]
+
+    if not question_ids:
+        return {
+            "id": quiz_id,
+            "name": quiz_res.data["name"],
+            "description": quiz_res.data["description"],
+            "questions": []
+        }
+
+    questions_res = supabase.table("questions") \
+        .select("id, question, correct_answer, options") \
+        .in_("id", question_ids).execute()
+
     return {
         "id": quiz_id,
         "name": quiz_res.data["name"],
@@ -56,6 +78,7 @@ def get_quiz_by_id(quiz_id: int):
             for q in questions_res.data
         ]
     }
+
 
 def save_quiz_attempt(quiz_id: int, score: int, total_questions: int):
     supabase.table("attempts").insert({
