@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
+import Icon from '@mdi/react';
+import { mdiTrashCan } from '@mdi/js';
+
 
 const API_BASE = "https://quiz-forge.onrender.com";
 const PAGE_SIZE = 4; // Number of quizzes per page
@@ -341,28 +344,29 @@ function App() {
         ) : (
           <ul className="space-y-3">
             {currentQuizzes.map((q) => (
-              <li key={q.id} className="flex justify-between items-center">
-                <button
-                  onClick={() => loadQuiz(q.id)}
-                  className="flex-grow text-left px-4 py-3 bg-indigo-100 rounded-md hover:bg-indigo-200 transition"
-                >
-                  <div>
-                    <div>{q.name}</div>
-                    <div className="text-sm text-gray-600">
+              <li key={q.id}>
+                <div className="flex items-center justify-between w-full bg-indigo-100 hover:bg-indigo-200 px-4 py-3 rounded-md transition group">
+                  <button
+                    onClick={() => loadQuiz(q.id)}
+                    className="flex flex-col text-left w-full"
+                  >
+                    <span className="font-medium">{q.name}</span>
+                    <span className="text-sm text-gray-600">
                       {attempts[q.id]
                         ? `Last score: ${attempts[q.id].score}/${attempts[q.id].total}`
                         : "No attempts yet"}
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => deleteQuiz(q.id)}
-                  className="ml-4 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-                  aria-label={`Delete quiz ${q.name}`}
-                >
-                  Delete
-                </button>
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => deleteQuiz(q.id)}
+                    className="ml-3 text-gray-400 hover:text-gray-600 transition-opacity opacity-0 group-hover:opacity-100"
+                    aria-label={`Delete quiz ${q.name}`}
+                  >
+                    <Icon path={mdiTrashCan} size={1} />
+                  </button>
+                </div>
               </li>
+
             ))}
           </ul>
         )}
