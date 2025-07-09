@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json
 import httpx
 import os
+from supabase import create_client, Client
 from fastapi import Request
 from models import supabase  
 
@@ -24,11 +25,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 init_db()
 
-
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 @app.post("/generate")
@@ -53,7 +56,7 @@ Each question in the "questions" array must have the following fields:
 - "correctAnswer": the correct answer string.
 - "multiChoiceOptions": an array of exactly 4 answer choices including the correct answer. 
 
-${context}
+{context}
 
 Make sure questions and answers are in English, are relevant to the context, and avoid overly technical jargon unless the context demands it.
 
@@ -90,9 +93,11 @@ Output the entire quiz as a valid JSON object exactly in this format without add
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate quiz: {e}")
 
+
 @app.get("/")
 def read_root():
     return {"Hello": "QuizForge"}
+
 
 @app.post("/upload")
 async def upload_quiz(file: UploadFile = File(...)):
@@ -104,9 +109,11 @@ async def upload_quiz(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @app.get("/quizzes")
 def list_quizzes():
     return get_all_quizzes()
+
 
 @app.get("/quiz/{quiz_id}")
 def get_quiz(quiz_id: int):
@@ -114,6 +121,7 @@ def get_quiz(quiz_id: int):
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
     return quiz
+
 
 @app.post("/quiz/{quiz_id}/attempt")
 def record_attempt(quiz_id: int, data: dict):
@@ -124,23 +132,37 @@ def record_attempt(quiz_id: int, data: dict):
     save_quiz_attempt(quiz_id, score, total)
     return {"message": "Attempt recorded"}
 
+
 @app.get("/attempts")
 def fetch_attempts():
     return get_latest_attempts()
 
+
 @app.post("/mock-exam")
 async def create_mock_exam(request: Request):
     data = await request.json() if await request.body() else {}
-    num_questions = data.get("numQuestions", 30)  # default 30 if not provided
-
-    # Fetch all questions
-    question_res = supabase.table("questions").select("id").execute()
-    all_ids = [q["id"] for q in question_res.data]
+    num_questions = data.get("numQuestions", 30)
 
     import random
-    selected_ids = random.sample(all_ids, min(num_questions, len(all_ids)))
 
-    # Create a new quiz
+    # Get all valid quiz IDs
+    quiz_res = supabase.table("quizzes").select("id").execute()
+    valid_quiz_ids = {q["id"] for q in quiz_res.data}
+
+    # Get all question_ids linked to valid quizzes
+    mapping_res = supabase.table("quiz_questions").select("quiz_id", "question_id").execute()
+    linked_question_ids = [
+        row["question_id"] for row in mapping_res.data if row["quiz_id"] in valid_quiz_ids
+    ]
+
+    # If no valid questions, return an error
+    if not linked_question_ids:
+        raise HTTPException(status_code=400, detail="No available questions for mock exam.")
+
+    # Randomly select questions
+    selected_ids = random.sample(linked_question_ids, min(num_questions, len(linked_question_ids)))
+
+    # Create the mock quiz
     new_quiz_res = supabase.table("quizzes").insert({
         "name": "Mock Exam",
         "description": "Randomized mock exam from all topics"
@@ -218,8 +240,22 @@ async def create_mock_exam(request: Request):
 
 @app.delete("/quiz/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_quiz(quiz_id: int):
+    # Step 1: Get all question_ids linked to this quiz
+    mapping_res = supabase.table("quiz_questions").select("question_id").eq("quiz_id", quiz_id).execute()
+    question_ids = [row["question_id"] for row in mapping_res.data]
+
+    # Step 2: Delete links in quiz_questions for this quiz
     supabase.table("quiz_questions").delete().eq("quiz_id", quiz_id).execute()
+
+    # Step 3: Delete the quiz itself
     supabase.table("quizzes").delete().eq("id", quiz_id).execute()
-    return
 
+    # Step 4: For each question, check if it's linked to any other quiz before deleting
+    for qid in question_ids:
+        # Check if question is linked to other quizzes
+        links_res = supabase.table("quiz_questions").select("quiz_id").eq("question_id", qid).execute()
+        if not links_res.data or len(links_res.data) == 0:
+            # No other links found, safe to delete question
+            supabase.table("questions").delete().eq("id", qid).execute()
 
+    return {"message": f"Quiz {quiz_id} and its unused questions deleted."}

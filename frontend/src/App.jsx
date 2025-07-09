@@ -325,11 +325,6 @@ function App() {
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">Available Quizzes</h2>
-        {quizzes.length === 0 && (
-          <p className="text-gray-500">No quizzes uploaded yet.</p>
-        )}
-
-
         {loadingQuizzes ? (
           <div className="flex justify-center items-center py-4">
             <div className="flex justify-center items-center space-x-2">
