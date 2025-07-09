@@ -399,25 +399,26 @@ function App() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex justify-center mt-6 space-x-3">
+          <div className="flex justify-center mt-6 space-x-3 text-sm sm:text-base">
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-md text-white ${currentPage === 1 ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              className={`px-4 py-1.5 sm:py-2 rounded-md text-white ${currentPage === 1 ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
                 }`}
             >
               Prev
             </button>
+
             {/* Desktop pagination */}
             <div className="hidden sm:flex space-x-2">
               {getPageNumbers(currentPage, totalPages).map((page, idx) =>
                 page === "..." ? (
-                  <span key={idx} className="px-3 py-2 text-gray-500 select-none">...</span>
+                  <span key={idx} className="px-3 py-1.5 sm:py-2 text-gray-500 select-none">...</span>
                 ) : (
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded-md text-white ${currentPage === page ? "bg-indigo-800" : "bg-indigo-600 hover:bg-indigo-700"
+                    className={`px-4 py-1.5 sm:py-2 rounded-md text-white ${currentPage === page ? "bg-indigo-800" : "bg-indigo-600 hover:bg-indigo-700"
                       }`}
                   >
                     {page}
@@ -431,7 +432,7 @@ function App() {
               <button
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
-                className={`px-3 py-1.5 rounded-md text-white ${currentPage === 1 ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+                className={`px-3 py-1 sm:py-2 rounded-md text-white ${currentPage === 1 ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
                   }`}
               >
                 First
@@ -440,25 +441,24 @@ function App() {
               <button
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages}
-                className={`px-3 py-1.5 rounded-md text-white ${currentPage === totalPages ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+                className={`px-3 py-1 sm:py-2 rounded-md text-white ${currentPage === totalPages ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
                   }`}
               >
                 Last
               </button>
             </div>
 
-
-
-
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-md text-white ${currentPage === totalPages ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              className={`px-4 py-1.5 sm:py-2 rounded-md text-white ${currentPage === totalPages ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
                 }`}
             >
               Next
             </button>
           </div>
+
+
         )}
       </div>
     );
