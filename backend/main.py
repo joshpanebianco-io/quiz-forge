@@ -18,9 +18,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+load_dotenv()
+
 init_db()
 
-load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
@@ -121,12 +122,29 @@ def record_attempt(quiz_id: int, data: dict):
 def fetch_attempts():
     return get_latest_attempts()
 
+# @app.delete("/quiz/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
+# def delete_quiz(quiz_id: int):
+#     conn = get_db()
+#     c = conn.cursor()
+#     c.execute("DELETE FROM questions WHERE quiz_id = ?", (quiz_id,))
+#     c.execute("DELETE FROM quizzes WHERE id = ?", (quiz_id,))
+#     conn.commit()
+#     conn.close()
+#     return
+
 @app.delete("/quiz/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_quiz(quiz_id: int):
     conn = get_db()
-    c = conn.cursor()
-    c.execute("DELETE FROM questions WHERE quiz_id = ?", (quiz_id,))
-    c.execute("DELETE FROM quizzes WHERE id = ?", (quiz_id,))
-    conn.commit()
+    if os.getenv("USE_SUPABASE", "false").lower() == "true":
+        cur = conn.cursor()
+        cur.execute("DELETE FROM questions WHERE quiz_id = %s", (quiz_id,))
+        cur.execute("DELETE FROM quizzes WHERE id = %s", (quiz_id,))
+        conn.commit()
+        cur.close()
+    else:
+        c = conn.cursor()
+        c.execute("DELETE FROM questions WHERE quiz_id = ?", (quiz_id,))
+        c.execute("DELETE FROM quizzes WHERE id = ?", (quiz_id,))
+        conn.commit()
     conn.close()
     return
