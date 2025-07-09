@@ -27,6 +27,8 @@ function App() {
   const [context, setContext] = useState("");
   const [numQuestions, setNumQuestions] = useState(10);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+
 
   const generateQuizFromPrompt = async () => {
     if (!context.trim()) return alert("Please enter some context.");
@@ -82,12 +84,15 @@ function App() {
   }, []);
 
   const fetchQuizzes = async () => {
+    setLoadingQuizzes(true);
     try {
       const res = await axios.get(`${API_BASE}/quizzes`);
       setQuizzes(res.data);
       setCurrentPage(1); // Reset to first page on fetch
     } catch {
       alert("Failed to fetch quizzes");
+    } finally {
+      setLoadingQuizzes(false);
     }
   };
 
@@ -235,11 +240,33 @@ function App() {
             <button
               onClick={generateQuizFromPrompt}
               disabled={loadingAI}
-              className={`px-5 py-2 rounded-md text-white ${loadingAI ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"
-                }`}
+              className={`px-5 py-2 rounded-md text-white flex items-center justify-center space-x-2 ${loadingAI ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"}`}
             >
-              {loadingAI ? "Generating..." : "Generate Quiz"}
+              {loadingAI && (
+                <svg
+                  className="w-5 h-5 animate-spin text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+              )}
+              <span>{loadingAI ? "Generating..." : "Generate Quiz"}</span>
             </button>
+
           </div>
         </div>
 
@@ -247,33 +274,48 @@ function App() {
         {quizzes.length === 0 && (
           <p className="text-gray-500">No quizzes uploaded yet.</p>
         )}
-        <ul className="space-y-3">
-          {currentQuizzes.map((q) => (
-            <li key={q.id} className="flex justify-between items-center">
-              <button
-                onClick={() => loadQuiz(q.id)}
-                className="flex-grow text-left px-4 py-3 bg-indigo-100 rounded-md hover:bg-indigo-200 transition"
-              >
-                <div>
-                  <div>{q.name}</div>
-                  <div className="text-sm text-gray-600">
-                    {attempts[q.id]
-                      ? `Last score: ${attempts[q.id].score}/${attempts[q.id].total}`
-                      : "No attempts yet"}
-                  </div>
-                </div>
 
-              </button>
-              <button
-                onClick={() => deleteQuiz(q.id)}
-                className="ml-4 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-                aria-label={`Delete quiz ${q.name}`}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
+
+        {loadingQuizzes ? (
+          <div className="flex justify-center items-center py-4">
+            <div className="flex justify-center items-center space-x-2">
+              <span className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></span>
+            </div>
+
+          </div>
+        ) : quizzes.length === 0 ? (
+          <p className="text-gray-500">No quizzes uploaded yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {currentQuizzes.map((q) => (
+              <li key={q.id} className="flex justify-between items-center">
+                <button
+                  onClick={() => loadQuiz(q.id)}
+                  className="flex-grow text-left px-4 py-3 bg-indigo-100 rounded-md hover:bg-indigo-200 transition"
+                >
+                  <div>
+                    <div>{q.name}</div>
+                    <div className="text-sm text-gray-600">
+                      {attempts[q.id]
+                        ? `Last score: ${attempts[q.id].score}/${attempts[q.id].total}`
+                        : "No attempts yet"}
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => deleteQuiz(q.id)}
+                  className="ml-4 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+                  aria-label={`Delete quiz ${q.name}`}
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
