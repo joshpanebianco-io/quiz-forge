@@ -21,9 +21,10 @@
 
 ### 🧠 Backend
 
-- **FastAPI** — modern and high-performance Python web framework  
+- **FastAPI** — modern and high-performance Python web framework
+- **PostgreSQL (Supabase)** - managed backend database and realtime platform
 - **Sqlite** - lightweight file based database
-- **OpenRouter** - API platform for AI models
+- **OpenRouter** - API platform to access AI models
 
 ### 💻 Frontend
 
