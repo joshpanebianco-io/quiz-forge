@@ -10,6 +10,7 @@
 
 - 📤 Upload JSON files to generate quizzes.
 - 🤖 Enter prompt to generate quizzes with AI
+- 🎓 Create mock exam - grabs random questions from every quiz/topic
 - 📚 View a list of all uploaded quizzes.
 - 📝 Take quizzes with a multiple-choice interface.
 - ✅ Get immediate scoring feedback upon completion.
