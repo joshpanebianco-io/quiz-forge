@@ -1,6 +1,6 @@
 # 🧠 QuizForge
 
-**QuizForge** is a very simple lightweight web-based application that allows users to upload, take, and manage multiple-choice quizzes. It supports JSON file uploads and AI model prompts to generate quizzes, automatic scoring, and question-by-question navigation with immediate results.
+**QuizForge** is a very simple lightweight web-based application that allows users to upload, generate, take, and manage multiple-choice quizzes. It supports JSON file uploads and AI model prompts to generate quizzes, automatic scoring, and question-by-question navigation with immediate results.
 
 > ⚠️ **Note**: Not production/hosted and does not follow good react componentisation practices. Simple tool I made to help myself study for certification exams.
 
