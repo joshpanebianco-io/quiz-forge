@@ -1,106 +1,78 @@
 import os
-import psycopg2
 import json
 from typing import Dict, Any
+from supabase import create_client, Client
 
-def get_db():
-    return psycopg2.connect(
-        host=os.getenv("SUPABASE_HOST"),
-        dbname=os.getenv("SUPABASE_DB"),
-        user=os.getenv("SUPABASE_USER"),
-        password=os.getenv("SUPABASE_PASSWORD"),
-        port=os.getenv("SUPABASE_PORT", 5432),
-    )
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def init_db():
-    # Assume you ran migrations manually on Supabase, so no init here
+    # No longer needed with Supabase
     pass
 
 def save_quiz(quiz: Dict[str, Any]):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO quizzes (name, description) VALUES (%s, %s) RETURNING id",
-        (quiz["name"], quiz.get("description", ""))
-    )
-    quiz_id = cur.fetchone()[0]
+    res = supabase.table("quizzes").insert({
+        "name": quiz["name"],
+        "description": quiz.get("description", "")
+    }).execute()
+    quiz_id = res.data[0]["id"]
 
     for q in quiz["questions"]:
         if q["type"] != "MultipleChoice":
             continue
-        cur.execute(
-            """INSERT INTO questions (quiz_id, question, correct_answer, options)
-               VALUES (%s, %s, %s, %s)""",
-            (quiz_id, q["question"], q["correctAnswer"], json.dumps(q["multiChoiceOptions"]))
-        )
-    conn.commit()
-    cur.close()
-    conn.close()
+        supabase.table("questions").insert({
+            "quiz_id": quiz_id,
+            "question": q["question"],
+            "correct_answer": q["correctAnswer"],
+            "options": json.dumps(q["multiChoiceOptions"])
+        }).execute()
+
     return quiz_id
 
 def get_all_quizzes():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT id, name, description FROM quizzes")
-    data = [{"id": r[0], "name": r[1], "description": r[2]} for r in cur.fetchall()]
-    cur.close()
-    conn.close()
-    return data
+    res = supabase.table("quizzes").select("id, name, description").execute()
+    return res.data
 
 def get_quiz_by_id(quiz_id: int):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT name, description FROM quizzes WHERE id = %s", (quiz_id,))
-    row = cur.fetchone()
-    if not row:
-        cur.close()
-        conn.close()
+    quiz_res = supabase.table("quizzes").select("name, description").eq("id", quiz_id).single().execute()
+    if not quiz_res.data:
         return None
 
-    quiz = {
+    questions_res = supabase.table("questions").select("question, correct_answer, options").eq("quiz_id", quiz_id).execute()
+    
+    return {
         "id": quiz_id,
-        "name": row[0],
-        "description": row[1],
-        "questions": []
+        "name": quiz_res.data["name"],
+        "description": quiz_res.data["description"],
+        "questions": [
+            {
+                "type": "MultipleChoice",
+                "question": q["question"],
+                "correctAnswer": q["correct_answer"],
+                "multiChoiceOptions": json.loads(q["options"])
+            }
+            for q in questions_res.data
+        ]
     }
 
-    cur.execute("SELECT question, correct_answer, options FROM questions WHERE quiz_id = %s", (quiz_id,))
-    for q in cur.fetchall():
-        quiz["questions"].append({
-            "type": "MultipleChoice",
-            "question": q[0],
-            "correctAnswer": q[1],
-            "multiChoiceOptions": json.loads(q[2])
-        })
-    cur.close()
-    conn.close()
-    return quiz
-
 def save_quiz_attempt(quiz_id: int, score: int, total_questions: int):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        """INSERT INTO attempts (quiz_id, score, total_questions)
-           VALUES (%s, %s, %s)""",
-        (quiz_id, score, total_questions)
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
+    supabase.table("attempts").insert({
+        "quiz_id": quiz_id,
+        "score": score,
+        "total_questions": total_questions
+    }).execute()
 
 def get_latest_attempts():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT quiz_id, score, total_questions
-        FROM attempts
-        WHERE id IN (
-            SELECT MAX(id)
-            FROM attempts
-            GROUP BY quiz_id
-        )
-    """)
-    result = {row[0]: {"score": row[1], "total": row[2]} for row in cur.fetchall()}
-    cur.close()
-    conn.close()
-    return result
+    # You can’t use GROUP BY MAX(id) in Supabase directly, so here's a simplified version:
+    res = supabase.table("attempts").select("*").order("id", desc=True).execute()
+    latest_attempts = {}
+    for attempt in res.data:
+        qid = attempt["quiz_id"]
+        if qid not in latest_attempts:
+            latest_attempts[qid] = {
+                "score": attempt["score"],
+                "total": attempt["total_questions"]
+            }
+    return latest_attempts

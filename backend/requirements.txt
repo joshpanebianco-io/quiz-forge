@@ -3,4 +3,4 @@ uvicorn
 httpx
 python-dotenv
 python-multipart
-psycopg2-binary
+supabase

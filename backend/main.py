@@ -4,27 +4,29 @@ from dotenv import load_dotenv
 import json
 import httpx
 import os
+
+load_dotenv()
+
 from models import (
     init_db, save_quiz, get_all_quizzes, get_quiz_by_id,
-    save_quiz_attempt, get_latest_attempts, get_db
+    save_quiz_attempt, get_latest_attempts
 )
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://joshpanebianco-io.github.io"],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-load_dotenv()
-
 init_db()
 
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
 
 @app.post("/generate")
 async def generate_quiz(data: dict):
@@ -135,17 +137,8 @@ def fetch_attempts():
 
 @app.delete("/quiz/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_quiz(quiz_id: int):
-    conn = get_db()
-    if os.getenv("USE_SUPABASE", "false").lower() == "true":
-        cur = conn.cursor()
-        cur.execute("DELETE FROM questions WHERE quiz_id = %s", (quiz_id,))
-        cur.execute("DELETE FROM quizzes WHERE id = %s", (quiz_id,))
-        conn.commit()
-        cur.close()
-    else:
-        c = conn.cursor()
-        c.execute("DELETE FROM questions WHERE quiz_id = ?", (quiz_id,))
-        c.execute("DELETE FROM quizzes WHERE id = ?", (quiz_id,))
-        conn.commit()
-    conn.close()
+    from models import supabase
+    supabase.table("questions").delete().eq("quiz_id", quiz_id).execute()
+    supabase.table("quizzes").delete().eq("id", quiz_id).execute()
     return
+
