@@ -13,10 +13,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://joshpanebianco-io.github.io"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 load_dotenv()
 
