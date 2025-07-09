@@ -93,6 +93,44 @@ function App() {
 
 
 
+  function getPageNumbers(currentPage, totalPages, delta = 1) {
+    const range = [];
+    const rangeWithDots = [];
+    let lastPage;
+
+    // If totalPages is 5 or fewer, show full range (no ellipses)
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    // Build visible range: first, last, and delta range around current
+    for (let i = 1; i <= totalPages; i++) {
+      if (
+        i === 1 ||
+        i === totalPages ||
+        (i >= currentPage - delta && i <= currentPage + delta)
+      ) {
+        range.push(i);
+      }
+    }
+
+    // Add dots where needed
+    for (let page of range) {
+      if (lastPage != null) {
+        if (page - lastPage === 2) {
+          rangeWithDots.push(lastPage + 1);
+        } else if (page - lastPage > 1) {
+          rangeWithDots.push("...");
+        }
+      }
+      rangeWithDots.push(page);
+      lastPage = page;
+    }
+
+    return rangeWithDots;
+  }
+
+
 
 
 
@@ -251,22 +289,15 @@ function App() {
             className="w-full p-3 border rounded-md mb-3"
           />
           <div className="flex justify-between items-center mb-3 space-x-3">
-            {/* <input
-              type="number"
-              min={1}
-              max={50}
-              value={numQuestions}
-              onChange={(e) => setNumQuestions(parseInt(e.target.value))}
-              className="w-20 px-3 py-2 border rounded-md"
-            /> */}
             <button
               onClick={generateQuizFromPrompt}
               disabled={loadingAI}
-              className={`px-5 py-2 rounded-md text-white flex items-center justify-center space-x-2 ${loadingAI ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"}`}
+              className={`px-3 py-1.5 sm:px-5 sm:py-2 rounded-md text-white flex items-center justify-center space-x-1 sm:space-x-2 ${loadingAI ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"
+                }`}
             >
               {loadingAI && (
                 <svg
-                  className="w-5 h-5 animate-spin text-white"
+                  className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-white"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -286,18 +317,18 @@ function App() {
                   />
                 </svg>
               )}
-              <span>{loadingAI ? "Generating..." : "Generate Quiz"}</span>
+              <span className="text-sm sm:text-base">{loadingAI ? "Generating..." : "Generate Quiz"}</span>
             </button>
 
             <button
               onClick={generateMockExam}
               disabled={loadingMock}
-              className={`px-5 py-2 rounded-md flex items-center justify-center space-x-2 text-white ${loadingMock ? "bg-gray-400" : "bg-gray-800 hover:bg-gray-900"
+              className={`px-3 py-1.5 sm:px-5 sm:py-2 rounded-md flex items-center justify-center space-x-1 sm:space-x-2 text-white ${loadingMock ? "bg-gray-400" : "bg-gray-800 hover:bg-gray-900"
                 }`}
             >
               {loadingMock && (
                 <svg
-                  className="w-5 h-5 animate-spin text-white"
+                  className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-white"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -317,11 +348,10 @@ function App() {
                   />
                 </svg>
               )}
-              <span>{loadingMock ? "Generating..." : "Create Mock Exam"}</span>
+              <span className="text-sm sm:text-base">{loadingMock ? "Generating..." : "Create Mock Exam"}</span>
             </button>
-
-
           </div>
+
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">Available Quizzes</h2>
@@ -354,7 +384,7 @@ function App() {
                   </button>
                   <button
                     onClick={() => deleteQuiz(q.id)}
-                    className="ml-3 text-gray-400 hover:text-gray-600 transition-opacity opacity-0 group-hover:opacity-100"
+                    className="ml-3 text-gray-400 hover:text-gray-600 transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
                     aria-label={`Delete quiz ${q.name}`}
                   >
                     <Icon path={mdiTrashCan} size={1} />
@@ -378,16 +408,48 @@ function App() {
             >
               Prev
             </button>
-            {[...Array(totalPages)].map((_, i) => (
+            {/* Desktop pagination */}
+            <div className="hidden sm:flex space-x-2">
+              {getPageNumbers(currentPage, totalPages).map((page, idx) =>
+                page === "..." ? (
+                  <span key={idx} className="px-3 py-2 text-gray-500 select-none">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-4 py-2 rounded-md text-white ${currentPage === page ? "bg-indigo-800" : "bg-indigo-600 hover:bg-indigo-700"
+                      }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* Mobile pagination: only First and Last */}
+            <div className="flex sm:hidden space-x-2 justify-center">
               <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-4 py-2 rounded-md text-white ${currentPage === i + 1 ? "bg-indigo-800" : "bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1.5 rounded-md text-white ${currentPage === 1 ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
                   }`}
               >
-                {i + 1}
+                First
               </button>
-            ))}
+
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1.5 rounded-md text-white ${currentPage === totalPages ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+                  }`}
+              >
+                Last
+              </button>
+            </div>
+
+
+
+
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
