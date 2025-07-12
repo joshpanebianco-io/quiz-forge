@@ -68,12 +68,24 @@ function App() {
   }, []);
 
   const loginWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'google' });
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://joshpanebianco-io.github.io/quiz-forge/'
+      }
+    });
   };
 
+
   const loginWithGithub = async () => {
-    await supabase.auth.signInWithOAuth({ provider: 'github' });
+    await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: 'https://joshpanebianco-io.github.io/quiz-forge/'
+      }
+    });
   };
+
 
   const loginWithLinkedIn = async () => {
     await supabase.auth.signInWithOAuth({ provider: 'linkedin' });
@@ -664,8 +676,8 @@ function App() {
             <button
               onClick={() => answerQuestion(opt)}
               className={`w-full text-left px-5 py-3 border rounded-md transition ${answers[currentQuestionIndex] === opt
-                  ? "border-indigo-600 bg-indigo-100"
-                  : "border-indigo-400 hover:bg-indigo-100"
+                ? "border-indigo-600 bg-indigo-100"
+                : "border-indigo-400 hover:bg-indigo-100"
                 }`}
             >
               {opt}
@@ -681,8 +693,8 @@ function App() {
           }}
           disabled={isFirstQuestion}
           className={`px-6 py-3 rounded-md text-white ${isFirstQuestion
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700"
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-indigo-600 hover:bg-indigo-700"
             }`}
         >
           Back
@@ -693,8 +705,8 @@ function App() {
             onClick={() => setShowResults(true)}
             disabled={answers[currentQuestionIndex] == null}
             className={`px-6 py-3 rounded-md text-white ${answers[currentQuestionIndex] == null
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
               }`}
           >
             Submit
@@ -707,8 +719,8 @@ function App() {
             }}
             disabled={answers[currentQuestionIndex] == null}
             className={`px-6 py-3 rounded-md text-white ${answers[currentQuestionIndex] == null
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
               }`}
           >
             Next
