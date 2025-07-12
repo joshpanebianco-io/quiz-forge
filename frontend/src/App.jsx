@@ -7,7 +7,7 @@ import { mdiTrashCan } from '@mdi/js';
 import { FaGoogle, FaGithub } from "react-icons/fa";
 
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://quiz-forge.onrender.com";
 const PAGE_SIZE = 4; // Number of quizzes per page
 
 // Create axios instance with interceptor to add auth token
