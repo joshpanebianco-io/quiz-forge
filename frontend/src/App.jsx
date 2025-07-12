@@ -1,12 +1,28 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { supabase } from './supabaseClient'
 
 import Icon from '@mdi/react';
 import { mdiTrashCan } from '@mdi/js';
+import { FaGoogle, FaGithub } from "react-icons/fa";
 
 
 const API_BASE = "https://quiz-forge.onrender.com";
 const PAGE_SIZE = 4; // Number of quizzes per page
+
+// Create axios instance with interceptor to add auth token
+const api = axios.create({
+  baseURL: API_BASE,
+});
+
+api.interceptors.request.use(async (config) => {
+  const session = await supabase.auth.getSession();
+  const token = session?.data?.session?.access_token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Fisher-Yates shuffle algorithm to randomize answer options
 function shuffleArray(array) {
@@ -33,14 +49,48 @@ function App() {
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
   const [loadingMock, setLoadingMock] = useState(false);
 
+  const [user, setUser] = useState(null);
 
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const loginWithGoogle = async () => {
+    await supabase.auth.signInWithOAuth({ provider: 'google' });
+  };
+
+  const loginWithGithub = async () => {
+    await supabase.auth.signInWithOAuth({ provider: 'github' });
+  };
+
+  const loginWithLinkedIn = async () => {
+    await supabase.auth.signInWithOAuth({ provider: 'linkedin' });
+  };
+
+
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const generateQuizFromPrompt = async () => {
     if (!context.trim()) return alert("Please enter some context.");
     setLoadingAI(true);
 
     try {
-      const res = await axios.post(`${API_BASE}/generate`, {
+      const res = await api.post("/generate", {
         context,
         numQuestions,
       });
@@ -53,7 +103,7 @@ function App() {
       const formData = new FormData();
       formData.append("file", blob, "quiz.json");
 
-      await axios.post(`${API_BASE}/upload`, formData, {
+      await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -80,7 +130,7 @@ function App() {
   const generateMockExam = async () => {
     try {
       setLoadingMock(true);
-      const res = await axios.post(`${API_BASE}/mock-exam`);
+      const res = await api.post("/mock-exam");
       alert("Mock exam created!");
       fetchQuizzes(); // Refresh list
     } catch (err) {
@@ -91,19 +141,15 @@ function App() {
     }
   };
 
-
-
   function getPageNumbers(currentPage, totalPages, delta = 1) {
     const range = [];
     const rangeWithDots = [];
     let lastPage;
 
-    // If totalPages is 5 or fewer, show full range (no ellipses)
     if (totalPages <= 5) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
 
-    // Build visible range: first, last, and delta range around current
     for (let i = 1; i <= totalPages; i++) {
       if (
         i === 1 ||
@@ -114,7 +160,6 @@ function App() {
       }
     }
 
-    // Add dots where needed
     for (let page of range) {
       if (lastPage != null) {
         if (page - lastPage === 2) {
@@ -130,25 +175,17 @@ function App() {
     return rangeWithDots;
   }
 
-
-
-
-
-
-
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    fetchQuizzes();
-  }, []);
-
   const fetchQuizzes = async () => {
+    if (!user) return;
+
     setLoadingQuizzes(true);
     try {
-      const res = await axios.get(`${API_BASE}/quizzes`);
+      const res = await api.get("/quizzes");
       setQuizzes(res.data);
-      setCurrentPage(1); // Reset to first page on fetch
+      setCurrentPage(1);
     } catch {
       alert("Failed to fetch quizzes");
     } finally {
@@ -157,31 +194,41 @@ function App() {
   };
 
   const fetchAttempts = async () => {
+    if (!user) return;
+
     try {
-      const res = await axios.get(`${API_BASE}/attempts`);
+      const res = await api.get("/attempts");
       setAttempts(res.data);
     } catch {
       console.error("Failed to fetch attempts");
     }
   };
 
+
+  const [hasFetched, setHasFetched] = useState(false);
+
   useEffect(() => {
-    fetchQuizzes();
-    fetchAttempts();
-  }, []);
+    if (user && !hasFetched) {
+      fetchQuizzes();
+      fetchAttempts();
+      setHasFetched(true);
+    }
+  }, [user, hasFetched]);
+
+
 
   useEffect(() => {
     if (showResults && selectedQuiz) {
-      axios.post(`${API_BASE}/quiz/${selectedQuiz.id}/attempt`, {
+      api.post(`/quiz/${selectedQuiz.id}/attempt`, {
         score,
-        total: selectedQuiz.questions.length
-      }).then(fetchAttempts).catch(() => {
-        console.error("Failed to record attempt");
-      });
+        total: selectedQuiz.questions.length,
+      })
+        .then(fetchAttempts)
+        .catch(() => {
+          console.error("Failed to record attempt");
+        });
     }
   }, [showResults]);
-
-
 
   const handleFileUpload = async (e) => {
     if (!e.target.files.length) return;
@@ -190,7 +237,7 @@ function App() {
     formData.append("file", file);
 
     try {
-      await axios.post(`${API_BASE}/upload`, formData, {
+      await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       alert("Quiz uploaded!");
@@ -203,7 +250,7 @@ function App() {
 
   const loadQuiz = async (quizId) => {
     try {
-      const res = await axios.get(`${API_BASE}/quiz/${quizId}`);
+      const res = await api.get(`/quiz/${quizId}`);
 
       // Shuffle both the questions and their options
       const shuffledQuiz = {
@@ -228,13 +275,12 @@ function App() {
   const deleteQuiz = async (quizId) => {
     if (!window.confirm("Are you sure you want to delete this quiz?")) return;
     try {
-      await axios.delete(`${API_BASE}/quiz/${quizId}`);
+      await api.delete(`/quiz/${quizId}`);
       setQuizzes((prev) => prev.filter((q) => q.id !== quizId));
       if (selectedQuiz && selectedQuiz.id === quizId) {
         setSelectedQuiz(null);
         setShowResults(false);
       }
-      // Adjust currentPage if necessary (optional)
       const newTotalPages = Math.ceil((quizzes.length - 1) / PAGE_SIZE);
       if (currentPage > newTotalPages) setCurrentPage(newTotalPages);
     } catch {
@@ -258,9 +304,64 @@ function App() {
     )
     : 0;
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="transform -translate-y-20 w-full max-w-md 
+                      md:bg-white md:rounded-2xl md:shadow-lg md:p-8 
+                      p-4 text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-indigo-700">
+            Welcome to QuizForge
+          </h1>
+          <p className="mb-6 text-gray-600">
+            Sign in to start generating and taking quizzes.
+          </p>
+
+          <button
+            onClick={loginWithGoogle}
+            className="flex items-center justify-center gap-2 px-6 py-3 mb-3 w-full rounded-md bg-red-600 text-white hover:bg-red-700 transition"
+          >
+            <FaGoogle className="text-lg" />
+            Sign in with Google
+          </button>
+
+          <button
+            onClick={loginWithGithub}
+            className="flex items-center justify-center gap-2 px-6 py-3 w-full rounded-md bg-gray-800 text-white hover:bg-gray-900 transition"
+          >
+            <FaGithub className="text-lg" />
+            Sign in with GitHub
+          </button>
+
+          {/* <button
+          onClick={loginWithLinkedIn}
+          className="px-6 py-3 w-full rounded-md bg-blue-700 text-white hover:bg-blue-800 transition"
+        >
+          Sign in with LinkedIn
+        </button> */}
+        </div>
+      </div>
+    );
+  }
+
+
+
+
   if (!selectedQuiz) {
     return (
       <div className="max-w-xl mx-auto p-6">
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-gray-600">
+            Logged in as: <strong>{user.email}</strong>
+          </p>
+          <button
+            onClick={logout}
+            className="text-sm px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Logout
+          </button>
+        </div>
+
         <h1 className="text-4xl font-extrabold text-center text-indigo-600 mb-6">
           QuizForge
         </h1>
@@ -280,7 +381,9 @@ function App() {
           />
         </label>
         <div className="mb-6">
-          <label className="block text-lg font-medium mb-2">Generate Quiz from AI</label>
+          <label className="block text-lg font-medium mb-2">
+            Generate Quiz from AI
+          </label>
           <textarea
             rows={2}
             value={context}
@@ -317,7 +420,9 @@ function App() {
                   />
                 </svg>
               )}
-              <span className="text-sm sm:text-base">{loadingAI ? "Generating..." : "Generate Quiz"}</span>
+              <span className="text-sm sm:text-base">
+                {loadingAI ? "Generating..." : "Generate Quiz"}
+              </span>
             </button>
 
             <button
@@ -348,10 +453,11 @@ function App() {
                   />
                 </svg>
               )}
-              <span className="text-sm sm:text-base">{loadingMock ? "Generating..." : "Create Mock Exam"}</span>
+              <span className="text-sm sm:text-base">
+                {loadingMock ? "Generating..." : "Create Mock Exam"}
+              </span>
             </button>
           </div>
-
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">Available Quizzes</h2>
@@ -362,7 +468,6 @@ function App() {
               <span className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
               <span className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></span>
             </div>
-
           </div>
         ) : quizzes.length === 0 ? (
           <p className="text-gray-500">No quizzes uploaded yet.</p>
@@ -391,11 +496,9 @@ function App() {
                   </button>
                 </div>
               </li>
-
             ))}
           </ul>
         )}
-
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
@@ -403,7 +506,9 @@ function App() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className={`px-4 py-1.5 sm:py-2 rounded-md text-white ${currentPage === 1 ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              className={`px-4 py-1.5 sm:py-2 rounded-md text-white ${currentPage === 1
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
                 }`}
             >
               Prev
@@ -411,14 +516,18 @@ function App() {
 
             {/* Desktop pagination */}
             <div className="hidden sm:flex space-x-2">
-              {getPageNumbers(currentPage, totalPages).map((page, idx) =>
+              {getPageNumbers(currentPage, totalPages).map((page, i) =>
                 page === "..." ? (
-                  <span key={idx} className="px-3 py-1.5 sm:py-2 text-gray-500 select-none">...</span>
+                  <span key={`dots-${i}`} className="text-gray-600 select-none">
+                    ...
+                  </span>
                 ) : (
                   <button
-                    key={page}
+                    key={`page-${page}`}
                     onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-1.5 sm:py-2 rounded-md text-white ${currentPage === page ? "bg-indigo-800" : "bg-indigo-600 hover:bg-indigo-700"
+                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-md ${page === currentPage
+                      ? "bg-indigo-700 text-white"
+                      : "bg-indigo-200 hover:bg-indigo-300"
                       }`}
                   >
                     {page}
@@ -451,14 +560,14 @@ function App() {
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className={`px-4 py-1.5 sm:py-2 rounded-md text-white ${currentPage === totalPages ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+              className={`px-4 py-1.5 sm:py-2 rounded-md text-white ${currentPage === totalPages
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
                 }`}
             >
               Next
             </button>
           </div>
-
-
         )}
       </div>
     );
@@ -515,7 +624,7 @@ function App() {
             }}
             className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
           >
-            Back to quizzes
+            Back to home
           </button>
         </div>
       </div>
@@ -528,6 +637,18 @@ function App() {
 
   return (
     <div className="max-w-xl mx-auto p-6">
+      <div className="mb-4">
+        <button
+          onClick={() => {
+            setSelectedQuiz(null);
+            setShowResults(false);
+          }}
+          className="text-indigo-600 hover:underline text-sm flex items-center gap-1"
+        >
+          ← Back to home
+        </button>
+      </div>
+
       <h2 className="text-3xl font-bold mb-2 text-indigo-700">{selectedQuiz.name}</h2>
       {selectedQuiz.description && (
         <p className="mb-4 text-gray-600">{selectedQuiz.description}</p>
@@ -543,8 +664,8 @@ function App() {
             <button
               onClick={() => answerQuestion(opt)}
               className={`w-full text-left px-5 py-3 border rounded-md transition ${answers[currentQuestionIndex] === opt
-                ? "border-indigo-600 bg-indigo-100"
-                : "border-indigo-400 hover:bg-indigo-100"
+                  ? "border-indigo-600 bg-indigo-100"
+                  : "border-indigo-400 hover:bg-indigo-100"
                 }`}
             >
               {opt}
@@ -559,7 +680,9 @@ function App() {
             if (!isFirstQuestion) setCurrentQuestionIndex(currentQuestionIndex - 1);
           }}
           disabled={isFirstQuestion}
-          className={`px-6 py-3 rounded-md text-white ${isFirstQuestion ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+          className={`px-6 py-3 rounded-md text-white ${isFirstQuestion
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
             }`}
         >
           Back
@@ -570,8 +693,8 @@ function App() {
             onClick={() => setShowResults(true)}
             disabled={answers[currentQuestionIndex] == null}
             className={`px-6 py-3 rounded-md text-white ${answers[currentQuestionIndex] == null
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700"
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
               }`}
           >
             Submit
@@ -584,8 +707,8 @@ function App() {
             }}
             disabled={answers[currentQuestionIndex] == null}
             className={`px-6 py-3 rounded-md text-white ${answers[currentQuestionIndex] == null
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700"
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
               }`}
           >
             Next
@@ -594,6 +717,7 @@ function App() {
       </div>
     </div>
   );
+
 }
 
 export default App;

@@ -1,20 +1,25 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-import json
-import httpx
 import os
+import json
+import random
+import httpx
+from fastapi import FastAPI, UploadFile, File, HTTPException, status, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from dotenv import load_dotenv
 from supabase import create_client, Client
-from fastapi import Request
-from models import supabase  
-
+from models import (
+    save_quiz, get_all_quizzes, get_quiz_by_id,
+    save_quiz_attempt, get_latest_attempts
+)
+import jwt  # PyJWT or python-jose; install with pip if needed
 
 load_dotenv()
 
-from models import (
-    init_db, save_quiz, get_all_quizzes, get_quiz_by_id,
-    save_quiz_attempt, get_latest_attempts
-)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL2")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY2")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = FastAPI()
 
@@ -25,17 +30,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-init_db()
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+security = HTTPBearer()
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    token = credentials.credentials
+    try:
+        # WARNING: You should verify the token signature here using your secret/public key
+        payload = jwt.decode(token, options={"verify_signature": False})
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token: user_id missing")
+        return user_id
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 @app.post("/generate")
-async def generate_quiz(data: dict):
+async def generate_quiz(data: dict, user_id: str = Depends(get_current_user)):
     context = data.get("context", "").strip()
     num_questions = data.get("numQuestions", 5)
 
@@ -70,7 +81,7 @@ Output the entire quiz as a valid JSON object exactly in this format without add
                 headers={
                     "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                     "Content-Type": "application/json",
-                    "HTTP-Referer": "https://joshpanebianco-io.github.io/quiz-forge",  # change if needed
+                    
                     "X-Title": "QuizForge",
                 },
                 json={
@@ -83,7 +94,6 @@ Output the entire quiz as a valid JSON object exactly in this format without add
 
         raw = res.json()["choices"][0]["message"]["content"].strip()
 
-        # Strip triple backticks if present
         if raw.startswith("```"):
             raw = raw.replace("```json", "").replace("```", "").strip()
 
@@ -93,60 +103,51 @@ Output the entire quiz as a valid JSON object exactly in this format without add
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate quiz: {e}")
 
-
 @app.get("/")
 def read_root():
     return {"Hello": "QuizForge"}
 
-
 @app.post("/upload")
-async def upload_quiz(file: UploadFile = File(...)):
+async def upload_quiz(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
     try:
         content = await file.read()
         quiz = json.loads(content)
-        quiz_id = save_quiz(quiz)
+        quiz_id = save_quiz(quiz, user_id)
         return {"message": "Quiz uploaded", "quiz_id": quiz_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @app.get("/quizzes")
-def list_quizzes():
-    return get_all_quizzes()
-
+def list_quizzes(user_id: str = Depends(get_current_user)):
+    return get_all_quizzes(user_id)
 
 @app.get("/quiz/{quiz_id}")
-def get_quiz(quiz_id: int):
-    quiz = get_quiz_by_id(quiz_id)
+def get_quiz(quiz_id: int, user_id: str = Depends(get_current_user)):
+    quiz = get_quiz_by_id(quiz_id, user_id)
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
     return quiz
 
-
 @app.post("/quiz/{quiz_id}/attempt")
-def record_attempt(quiz_id: int, data: dict):
+def record_attempt(quiz_id: int, data: dict, user_id: str = Depends(get_current_user)):
     score = data.get("score")
     total = data.get("total")
     if score is None or total is None:
         raise HTTPException(status_code=400, detail="Missing score or total.")
-    save_quiz_attempt(quiz_id, score, total)
+    save_quiz_attempt(quiz_id, score, total, user_id)
     return {"message": "Attempt recorded"}
 
-
 @app.get("/attempts")
-def fetch_attempts():
-    return get_latest_attempts()
-
+def fetch_attempts(user_id: str = Depends(get_current_user)):
+    return get_latest_attempts(user_id)
 
 @app.post("/mock-exam")
-async def create_mock_exam(request: Request):
+async def create_mock_exam(request: Request, user_id: str = Depends(get_current_user)):
     data = await request.json() if await request.body() else {}
     num_questions = data.get("numQuestions", 30)
 
-    import random
-
-    # Get all valid quiz IDs
-    quiz_res = supabase.table("quizzes").select("id").execute()
+    # Get all valid quiz IDs for this user only
+    quiz_res = supabase.table("quizzes").select("id").eq("user_id", user_id).execute()
     valid_quiz_ids = {q["id"] for q in quiz_res.data}
 
     # Get all question_ids linked to valid quizzes
@@ -155,21 +156,18 @@ async def create_mock_exam(request: Request):
         row["question_id"] for row in mapping_res.data if row["quiz_id"] in valid_quiz_ids
     ]
 
-    # If no valid questions, return an error
     if not linked_question_ids:
         raise HTTPException(status_code=400, detail="No available questions for mock exam.")
 
-    # Randomly select questions
     selected_ids = random.sample(linked_question_ids, min(num_questions, len(linked_question_ids)))
 
-    # Create the mock quiz
     new_quiz_res = supabase.table("quizzes").insert({
         "name": "Mock Exam",
-        "description": "Randomized mock exam from all topics"
+        "description": "Randomized mock exam from all topics",
+        "user_id": user_id
     }).execute()
     quiz_id = new_quiz_res.data[0]["id"]
 
-    # Link selected questions to the new quiz
     for qid in selected_ids:
         supabase.table("quiz_questions").insert({
             "quiz_id": quiz_id,
@@ -178,84 +176,31 @@ async def create_mock_exam(request: Request):
 
     return {"message": "Mock exam created", "quiz_id": quiz_id}
 
-
-
-# @app.post("/mock-exam")
-# async def create_mock_exam(request: Request):
-#     data = await request.json() if await request.body() else {}
-#     num_questions = data.get("numQuestions", 30)
-#     min_per_quiz = 3
-
-#     # Fetch all quizzes
-#     quizzes_res = supabase.table("quizzes").select("id").execute()
-#     quiz_ids = [q["id"] for q in quizzes_res.data]
-
-#     selected_ids = []
-
-#     # For each quiz, get at least min_per_quiz questions
-#     for quiz_id in quiz_ids:
-#         q_res = supabase.table("quiz_questions").select("question_id").eq("quiz_id", quiz_id).execute()
-#         question_ids = [q["question_id"] for q in q_res.data]
-
-#         # If quiz has fewer than min_per_quiz questions, take all
-#         count_to_take = min(min_per_quiz, len(question_ids))
-
-#         selected_ids.extend(random.sample(question_ids, count_to_take))
-
-#     # If total selected < num_questions, fill the rest randomly from all questions excluding already selected
-#     if len(selected_ids) < num_questions:
-#         all_q_res = supabase.table("questions").select("id").execute()
-#         all_question_ids = [q["id"] for q in all_q_res.data]
-#         remaining_pool = list(set(all_question_ids) - set(selected_ids))
-#         remaining_needed = num_questions - len(selected_ids)
-#         if remaining_needed > 0 and len(remaining_pool) > 0:
-#             selected_ids.extend(random.sample(remaining_pool, min(remaining_needed, len(remaining_pool))))
-
-#     # Create new quiz
-#     new_quiz_res = supabase.table("quizzes").insert({
-#         "name": "Mock Exam",
-#         "description": "Randomized mock exam from all topics with minimum questions per quiz"
-#     }).execute()
-#     quiz_id = new_quiz_res.data[0]["id"]
-
-#     # Link questions to the new quiz
-#     for qid in selected_ids:
-#         supabase.table("quiz_questions").insert({
-#             "quiz_id": quiz_id,
-#             "question_id": qid
-#         }).execute()
-
-#     return {"message": "Mock exam created", "quiz_id": quiz_id}
-
-
-# @app.delete("/quiz/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
-# def delete_quiz(quiz_id: int):
-#     conn = get_db()
-#     c = conn.cursor()
-#     c.execute("DELETE FROM questions WHERE quiz_id = ?", (quiz_id,))
-#     c.execute("DELETE FROM quizzes WHERE id = ?", (quiz_id,))
-#     conn.commit()
-#     conn.close()
-#     return
-
 @app.delete("/quiz/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_quiz(quiz_id: int):
-    # Step 1: Get all question_ids linked to this quiz
+def delete_quiz(quiz_id: int, user_id: str = Depends(get_current_user)):
+    # Check quiz belongs to user
+    quiz_check = supabase.table("quizzes").select("user_id").eq("id", quiz_id).single().execute()
+    if not quiz_check.data or quiz_check.data.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this quiz")
+
+    # Delete all attempts related to this quiz
+    supabase.table("attempts").delete().eq("quiz_id", quiz_id).execute()
+
+    # Get all question_ids linked to this quiz
     mapping_res = supabase.table("quiz_questions").select("question_id").eq("quiz_id", quiz_id).execute()
     question_ids = [row["question_id"] for row in mapping_res.data]
 
-    # Step 2: Delete links in quiz_questions for this quiz
+    # Delete links between quiz and questions
     supabase.table("quiz_questions").delete().eq("quiz_id", quiz_id).execute()
 
-    # Step 3: Delete the quiz itself
+    # Delete the quiz
     supabase.table("quizzes").delete().eq("id", quiz_id).execute()
 
-    # Step 4: For each question, check if it's linked to any other quiz before deleting
+    # Delete questions if they're no longer used by any other quiz
     for qid in question_ids:
-        # Check if question is linked to other quizzes
         links_res = supabase.table("quiz_questions").select("quiz_id").eq("question_id", qid).execute()
-        if not links_res.data or len(links_res.data) == 0:
-            # No other links found, safe to delete question
+        if not links_res.data:
             supabase.table("questions").delete().eq("id", qid).execute()
 
-    return {"message": f"Quiz {quiz_id} and its unused questions deleted."}
+    return {"message": f"Quiz {quiz_id} and its related data deleted."}
+

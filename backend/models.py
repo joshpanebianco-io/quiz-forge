@@ -1,23 +1,23 @@
 import os
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from fastapi import HTTPException
+
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL2")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY2")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-def init_db():
-    # No longer needed with Supabase
-    pass
-
-def save_quiz(quiz: Dict[str, Any]):
+    
+def save_quiz(quiz: Dict[str, Any], user_id: str) -> int:
     res = supabase.table("quizzes").insert({
         "name": quiz["name"],
-        "description": quiz.get("description", "")
+        "description": quiz.get("description", ""),
+        "user_id": user_id
+        
     }).execute()
     quiz_id = res.data[0]["id"]
 
@@ -39,17 +39,21 @@ def save_quiz(quiz: Dict[str, Any]):
     return quiz_id
 
 
-def get_all_quizzes():
-    res = supabase.table("quizzes").select("id, name, description").execute()
+def get_all_quizzes(user_id: str):
+    
+    res = supabase.table("quizzes").select("*").eq("user_id", user_id).execute()
     return res.data
 
-def get_quiz_by_id(quiz_id: int):
-    quiz_res = supabase.table("quizzes").select("name, description").eq("id", quiz_id).single().execute()
-    if not quiz_res.data:
-        return None
 
-    # Get question IDs from quiz_questions
+def get_quiz_by_id(quiz_id: int, user_id: Optional[str] = None):
+    query = supabase.table("quizzes").select("name, description").eq("id", quiz_id)
+    if user_id:
+        query = query.eq("user_id", user_id)
+    quiz_res = query.single().execute()
+
+
     mapping_res = supabase.table("quiz_questions").select("question_id").eq("quiz_id", quiz_id).execute()
+
     question_ids = [row["question_id"] for row in mapping_res.data]
 
     if not question_ids:
@@ -63,6 +67,7 @@ def get_quiz_by_id(quiz_id: int):
     questions_res = supabase.table("questions") \
         .select("id, question, correct_answer, options") \
         .in_("id", question_ids).execute()
+
 
     return {
         "id": quiz_id,
@@ -80,16 +85,21 @@ def get_quiz_by_id(quiz_id: int):
     }
 
 
-def save_quiz_attempt(quiz_id: int, score: int, total_questions: int):
-    supabase.table("attempts").insert({
+def save_quiz_attempt(quiz_id: int, score: int, total_questions: int, user_id: str):
+    res = supabase.table("attempts").insert({
         "quiz_id": quiz_id,
         "score": score,
-        "total_questions": total_questions
+        "total_questions": total_questions,
+        "user_id": user_id
     }).execute()
 
-def get_latest_attempts():
-    # You can’t use GROUP BY MAX(id) in Supabase directly, so here's a simplified version:
-    res = supabase.table("attempts").select("*").order("id", desc=True).execute()
+
+def get_latest_attempts(user_id: Optional[str] = None):
+    query = supabase.table("attempts").select("*").order("id", desc=True)
+    if user_id:
+        query = query.eq("user_id", user_id)
+    res = query.execute()
+
     latest_attempts = {}
     for attempt in res.data:
         qid = attempt["quiz_id"]
