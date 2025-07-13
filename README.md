@@ -1,3 +1,5 @@
+<img src="misc/screenshots/quiz-forge.png" width="500"/>
+
 # 🧠 QuizForge
 
 **QuizForge** is a very simple lightweight web-based application that allows users to upload, generate, take, and manage multiple-choice quizzes. It supports JSON file uploads and AI model prompts to generate quizzes, automatic scoring, and question-by-question navigation with immediate results.
@@ -58,7 +60,7 @@
 
 A preview of the app in action:
 
-<img src="misc/screenshots/quiz-forge.png" width="500"/>
+<img src="misc/screenshots/quiz-forge-auth.png" width="500"/>
 
 ---
 
