@@ -49,6 +49,11 @@ function App() {
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
   const [loadingMock, setLoadingMock] = useState(false);
 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -85,6 +90,51 @@ function App() {
       }
     });
   };
+
+  const loginWithEmailPassword = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert("Login failed: " + error.message);
+    } else {
+      console.log("Logged in:", data);
+      // data.user.id is the unique user ID you want to use
+      const userId = data.user.id;
+
+      // Save it somewhere, like in context/state or localStorage
+      setUser(data.user);
+      //window.location.replace(window.location.href);
+
+
+    }
+  };
+
+  const signUpWithEmailPassword = async () => {
+    if (!email.trim() || !password.trim()) {
+      alert("Please enter an email and password then press sign up.");
+      return;
+    }
+    setAuthLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert("Sign-up failed: " + error.message);
+    } else {
+      console.log("Signed up:", data);
+      // Optional: auto-login if email confirmation is disabled
+      setUser(data.user);
+    }
+
+    setAuthLoading(false);
+  };
+
+
 
 
   const loginWithLinkedIn = async () => {
@@ -217,15 +267,39 @@ function App() {
   };
 
 
+  const [isAppReady, setIsAppReady] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
   useEffect(() => {
-    if (user && !hasFetched) {
+    // Setup auth state listener
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setHasFetched(false);  // Reset fetch flag on user change
+      setIsAppReady(true);    // Auth state is now known
+    });
+
+    // Also get initial user info on mount
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setIsAppReady(true); // Auth state ready
+    };
+    getUser();
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAppReady && user && !hasFetched) {
       fetchQuizzes();
       fetchAttempts();
       setHasFetched(true);
     }
-  }, [user, hasFetched]);
+  }, [user, hasFetched, isAppReady]);
+
+
 
 
 
@@ -319,15 +393,59 @@ function App() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-        <div className="transform -translate-y-20 w-full max-w-md 
-                      md:bg-white md:rounded-2xl md:shadow-lg md:p-8 
-                      p-4 text-center">
+        <div className="transform -translate-y-4 w-full max-w-md 
+                    md:bg-white md:rounded-2xl md:shadow-lg md:p-8 
+                    p-4 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-indigo-700">
             Welcome to QuizForge
           </h1>
           <p className="mb-6 text-gray-600">
-            Sign in to start generating and taking quizzes.
+            Sign in to start generating quizzes.
           </p>
+
+          {/* --- Email/Password Login --- */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault(); // prevent page reload
+              loginWithEmailPassword(email, password); // call with actual values
+            }}
+            className="space-y-4 text-left mb-3"
+          >
+
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              required
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <button
+              type="submit"
+              disabled={authLoading}
+              className={`w-full py-2 rounded-md text-white transition ${authLoading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700"
+                }`}
+            >
+              {authLoading ? "Signing in..." : "Sign in with Email"}
+            </button>
+          </form>
+
+          {/* --- OR Divider --- */}
+          <div className="flex items-center my-6">
+            <div className="flex-grow border-t border-gray-300" />
+            <span className="mx-3 text-gray-500">OR</span>
+            <div className="flex-grow border-t border-gray-300" />
+          </div>
 
           <button
             onClick={loginWithGoogle}
@@ -339,22 +457,33 @@ function App() {
 
           <button
             onClick={loginWithGithub}
-            className="flex items-center justify-center gap-2 px-6 py-3 w-full rounded-md bg-gray-800 text-white hover:bg-gray-900 transition"
+            className="flex items-center justify-center gap-2 px-6 py-3 mb-6 w-full rounded-md bg-gray-800 text-white hover:bg-gray-900 transition"
           >
             <FaGithub className="text-lg" />
             Sign in with GitHub
           </button>
 
-          {/* <button
-          onClick={loginWithLinkedIn}
-          className="px-6 py-3 w-full rounded-md bg-blue-700 text-white hover:bg-blue-800 transition"
-        >
-          Sign in with LinkedIn
-        </button> */}
+
+
+          <p className="mt-4 text-sm text-gray-500 text-center">
+            Don’t have an account?{' '}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                signUpWithEmailPassword();
+              }}
+              className="text-indigo-600 hover:underline"
+            >
+              Sign up
+            </a>
+
+          </p>
         </div>
       </div>
     );
   }
+
 
 
 
