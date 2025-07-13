@@ -58,7 +58,7 @@
 
 A preview of the app in action:
 
-<img src="misc/screenshots/quiz-forge-auth.png" width="500"/>
+<img src="misc/screenshots/quiz-forge-auth1.png" width="500"/>
 
 ---
 
