@@ -10,6 +10,7 @@
 
 ## ✨ Features
 
+- 🔒 OAuth (Supabase) - sign in with email, google, github
 - 📤 Upload JSON files to generate quizzes.
 - 🤖 Enter prompt to generate quizzes with AI
 - 🎓 Create mock exam - grabs random questions from every quiz/topic
