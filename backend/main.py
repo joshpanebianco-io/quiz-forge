@@ -85,9 +85,15 @@ Output the entire quiz as a valid JSON object exactly in this format without add
                     "X-Title": "QuizForge",
                 },
                 json={
-                    "model": "deepseek/deepseek-r1:free",
+                    "model": "deepseek/deepseek-chat-v3-0324:free:online",
                     "messages": [{"role": "system", "content": prompt}],
                     "temperature": 0.7,
+                    "plugins": [
+                        {
+                            "id": "web",
+                            "max_results": 3           
+                        }
+                    ],
                 },
                 timeout=60.0,
             )
