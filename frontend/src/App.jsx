@@ -247,7 +247,7 @@ function App() {
     try {
       const res = await api.get("/quizzes");
       setQuizzes(res.data);
-      setCurrentPage(1);
+      //setCurrentPage(1);
     } catch {
       alert("Failed to fetch quizzes");
     } finally {
@@ -270,26 +270,32 @@ function App() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
-  useEffect(() => {
-    // Setup auth state listener
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setHasFetched(false);  // Reset fetch flag on user change
-      setIsAppReady(true);    // Auth state is now known
-    });
+  const [prevUserId, setPrevUserId] = useState(null);
 
-    // Also get initial user info on mount
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setIsAppReady(true); // Auth state ready
-    };
-    getUser();
+useEffect(() => {
+  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const newUser = session?.user ?? null;
+    setUser(newUser);
+    if (newUser?.id !== prevUserId) {
+      setHasFetched(false); // only refetch if user changed
+      setPrevUserId(newUser?.id ?? null);
+    }
+    setIsAppReady(true);
+  });
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  const getUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+    setPrevUserId(user?.id ?? null);
+    setIsAppReady(true);
+  };
+  getUser();
+
+  return () => {
+    listener.subscription.unsubscribe();
+  };
+}, [prevUserId]);
+
 
   useEffect(() => {
     if (isAppReady && user && !hasFetched) {
