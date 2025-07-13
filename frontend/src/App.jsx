@@ -203,39 +203,34 @@ function App() {
     }
   };
 
-  function getPageNumbers(currentPage, totalPages, delta = 1) {
+  function getPageNumbers(currentPage, totalPages) {
+    const delta = 1;
     const range = [];
     const rangeWithDots = [];
-    let lastPage;
+    let left = Math.max(2, currentPage - delta);
+    let right = Math.min(totalPages - 1, currentPage + delta);
 
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    range.push(1); // Always show first page
+
+    if (left > 2) {
+      range.push("...");
     }
 
-    for (let i = 1; i <= totalPages; i++) {
-      if (
-        i === 1 ||
-        i === totalPages ||
-        (i >= currentPage - delta && i <= currentPage + delta)
-      ) {
-        range.push(i);
-      }
+    for (let i = left; i <= right; i++) {
+      range.push(i);
     }
 
-    for (let page of range) {
-      if (lastPage != null) {
-        if (page - lastPage === 2) {
-          rangeWithDots.push(lastPage + 1);
-        } else if (page - lastPage > 1) {
-          rangeWithDots.push("...");
-        }
-      }
-      rangeWithDots.push(page);
-      lastPage = page;
+    if (right < totalPages - 1) {
+      range.push("...");
     }
 
-    return rangeWithDots;
+    if (totalPages > 1) {
+      range.push(totalPages); // Always show last page
+    }
+
+    return range;
   }
+
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -272,29 +267,29 @@ function App() {
 
   const [prevUserId, setPrevUserId] = useState(null);
 
-useEffect(() => {
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    const newUser = session?.user ?? null;
-    setUser(newUser);
-    if (newUser?.id !== prevUserId) {
-      setHasFetched(false); // only refetch if user changed
-      setPrevUserId(newUser?.id ?? null);
-    }
-    setIsAppReady(true);
-  });
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const newUser = session?.user ?? null;
+      setUser(newUser);
+      if (newUser?.id !== prevUserId) {
+        setHasFetched(false); // only refetch if user changed
+        setPrevUserId(newUser?.id ?? null);
+      }
+      setIsAppReady(true);
+    });
 
-  const getUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-    setPrevUserId(user?.id ?? null);
-    setIsAppReady(true);
-  };
-  getUser();
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setPrevUserId(user?.id ?? null);
+      setIsAppReady(true);
+    };
+    getUser();
 
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-}, [prevUserId]);
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [prevUserId]);
 
 
   useEffect(() => {
@@ -438,8 +433,8 @@ useEffect(() => {
               type="submit"
               disabled={authLoading}
               className={`w-full py-2 rounded-md text-white transition ${authLoading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700"
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
                 }`}
             >
               {authLoading ? "Signing in..." : "Sign in with Email"}
