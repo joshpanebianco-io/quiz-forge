@@ -8,7 +8,7 @@ import { FaGoogle, FaGithub } from "react-icons/fa";
 
 
 const API_BASE = "https://quiz-forge.onrender.com";
-const PAGE_SIZE = 4; // Number of quizzes per page
+const PAGE_SIZE = 5; // Number of quizzes per page
 
 // Create axios instance with interceptor to add auth token
 const api = axios.create({
