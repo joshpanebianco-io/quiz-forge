@@ -206,7 +206,6 @@ function App() {
   function getPageNumbers(currentPage, totalPages) {
     const delta = 1;
     const range = [];
-    const rangeWithDots = [];
     let left = Math.max(2, currentPage - delta);
     let right = Math.min(totalPages - 1, currentPage + delta);
 
@@ -273,6 +272,8 @@ function App() {
       setUser(newUser);
       if (newUser?.id !== prevUserId) {
         setHasFetched(false); // only refetch if user changed
+        setQuizzes([]);
+        setCurrentPage(1);   
         setPrevUserId(newUser?.id ?? null);
       }
       setIsAppReady(true);
