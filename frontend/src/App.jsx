@@ -114,7 +114,7 @@ function App() {
 
   const signUpWithEmailPassword = async () => {
     if (!email.trim() || !password.trim()) {
-      alert("Please enter an email and password then press sign up.");
+      alert("Please enter an email and password to sign up.");
       return;
     }
     setAuthLoading(true);
