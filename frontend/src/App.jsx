@@ -205,6 +205,12 @@ function App() {
 
   function getPageNumbers(currentPage, totalPages) {
     const delta = 1;
+
+    //Early return: Just return all page numbers directly if 5 or fewer pages
+    if (totalPages <= 4) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
     const range = [];
     let left = Math.max(2, currentPage - delta);
     let right = Math.min(totalPages - 1, currentPage + delta);
@@ -223,12 +229,11 @@ function App() {
       range.push("...");
     }
 
-    if (totalPages > 1) {
-      range.push(totalPages); // Always show last page
-    }
+    range.push(totalPages); // Always show last page
 
     return range;
   }
+
 
 
   // Pagination state
@@ -273,7 +278,7 @@ function App() {
       if (newUser?.id !== prevUserId) {
         setHasFetched(false); // only refetch if user changed
         setQuizzes([]);
-        setCurrentPage(1);   
+        setCurrentPage(1);
         setPrevUserId(newUser?.id ?? null);
       }
       setIsAppReady(true);
