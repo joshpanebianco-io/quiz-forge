@@ -206,19 +206,23 @@ function App() {
   function getPageNumbers(currentPage, totalPages) {
     const delta = 1;
 
-    //Early return: Just return all page numbers directly if 5 or fewer pages
+    // Show all pages if there are 5 or fewer
     if (totalPages <= 4) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
 
     const range = [];
-    let left = Math.max(2, currentPage - delta);
-    let right = Math.min(totalPages - 1, currentPage + delta);
+    const left = Math.max(2, currentPage - delta);
+    const right = Math.min(totalPages - 1, currentPage + delta);
 
     range.push(1); // Always show first page
 
     if (left > 2) {
       range.push("...");
+    } else {
+      for (let i = 2; i < left; i++) {
+        range.push(i);
+      }
     }
 
     for (let i = left; i <= right; i++) {
@@ -227,12 +231,17 @@ function App() {
 
     if (right < totalPages - 1) {
       range.push("...");
+    } else {
+      for (let i = right + 1; i < totalPages; i++) {
+        range.push(i);
+      }
     }
 
     range.push(totalPages); // Always show last page
 
     return range;
   }
+
 
 
 
