@@ -86,7 +86,12 @@ Output the entire quiz as a valid JSON object exactly in this format without add
                 },
                 json={
                     "model": "deepseek/deepseek-chat-v3-0324:free:online",
-                    "messages": [{"role": "system", "content": prompt}],
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
                     "temperature": 0.7,
                     "plugins": [
                         {
