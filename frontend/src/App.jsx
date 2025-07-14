@@ -207,7 +207,7 @@ function App() {
     const delta = 1;
 
     // Show all pages if there are 5 or fewer
-    if (totalPages <= 4) {
+    if (totalPages <= 5) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
 
