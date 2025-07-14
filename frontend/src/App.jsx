@@ -507,17 +507,37 @@ function App() {
   if (!selectedQuiz) {
     return (
       <div className="max-w-xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-4">
-          <p className="text-gray-600">
-            Logged in as: <strong>{user.email}</strong>
-          </p>
+        <div className="flex justify-between items-start md:items-center mb-5 p-3 bg-indigo-50 border border-indigo-100 rounded-md gap-2">
+          <div className="flex flex-col md:flex-row md:items-center gap-0.5 text-sm text-indigo-700 font-medium min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></span>
+              <span className="flex-shrink-0 whitespace-nowrap">Logged in as:&nbsp;</span>
+            </div>
+            <span className="font-bold text-indigo-900 break-words w-full md:w-auto truncate md:truncate-0">
+              {user.email}
+            </span>
+          </div>
+
           <button
             onClick={logout}
-            className="text-sm px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+            className="flex-shrink-0 flex items-center gap-1 text-xs bg-white text-gray-700 border border-gray-300 rounded-md px-2 py-1 md:px-4 md:py-1.5 hover:bg-gray-100 hover:border-gray-400 transition"
           >
+            <svg
+              className="w-3.5 h-3.5 md:w-4 md:h-4 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
+            </svg>
             Logout
           </button>
         </div>
+
+
+
+
 
         <h1 className="text-4xl font-extrabold text-center text-indigo-600 mb-6">
           QuizForge
